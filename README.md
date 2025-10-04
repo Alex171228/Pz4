@@ -8,8 +8,6 @@
 4.	Добавить простое middleware (логирование, CORS).
 5.	Научиться тестировать API запросами через curl/Postman/HTTPie.
 ## Запуск проекта
-```bash
-git clone <ссылка-на-репозиторий>
 cd pz4-todo
 go mod tidy
 go run .
