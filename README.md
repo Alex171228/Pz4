@@ -95,7 +95,11 @@ go run .
 
 ## Фрагменты кода роутера, middleware, обработчиков
 
-### Основной роутер
+### 1. Основной роутер (`main.go`)
+Реализует запуск сервера, подключение middleware и маршрутов с версионированием `/api/v1`.
+
+```
+go
 package main
 
 import (
@@ -132,3 +136,167 @@ func main() {
 	log.Printf("listening on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
+2. Middleware: логирование (pkg/middleware/logger.go)
+go
+Копировать код
+package middleware
+
+import (
+	"log"
+	"net/http"
+	"time"
+)
+
+// Logger — middleware, выводящее информацию о каждом запросе в консоль.
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+	})
+}
+
+```
+### 2. Middleware: логирование
+
+```
+package middleware
+
+import (
+	"log"
+	"net/http"
+	"time"
+)
+
+// Logger — middleware, выводящее информацию о каждом запросе в консоль.
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+	})
+}
+
+
+```
+### 3. Middleware: CORS
+
+```
+package middleware
+
+import "net/http"
+
+// SimpleCORS — middleware для разрешения кросс-доменных запросов.
+func SimpleCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+
+```
+### 4. Обработчик списка задач
+
+```
+// list — получение списка задач с поддержкой фильтра и пагинации.
+func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
+	items := h.repo.List()
+	q := r.URL.Query()
+
+	// Фильтр по статусу done
+	doneStr := q.Get("done")
+	if doneStr == "true" || doneStr == "false" {
+		want := doneStr == "true"
+		filtered := make([]*Task, 0, len(items))
+		for _, t := range items {
+			if t.Done == want {
+				filtered = append(filtered, t)
+			}
+		}
+		items = filtered
+	}
+
+	// Пагинация
+	page, limit := 1, 10
+	if v, err := strconv.Atoi(q.Get("page")); err == nil && v > 0 {
+		page = v
+	}
+	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v > 0 && v <= 100 {
+		limit = v
+	}
+	start := (page - 1) * limit
+	if start > len(items) {
+		start = len(items)
+	}
+	end := start + limit
+	if end > len(items) {
+		end = len(items)
+	}
+
+	writeJSON(w, http.StatusOK, items[start:end])
+}
+
+```
+### 5. Обработчик создания задачи
+
+```
+type createReq struct {
+	Title string `json:"title"`
+}
+
+func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
+	var req createReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Title == "" {
+		httpError(w, http.StatusBadRequest, "invalid json: require non-empty title")
+		return
+	}
+	if n := len(req.Title); n < 3 || n > 100 {
+		httpError(w, http.StatusBadRequest, "title length must be 3..100")
+		return
+	}
+	t := h.repo.Create(req.Title)
+	writeJSON(w, http.StatusCreated, t)
+}
+
+```
+### 6. Обработчик обновления задачи
+
+```
+type updateReq struct {
+	Title string `json:"title"`
+	Done  bool   `json:"done"`
+}
+
+func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
+	id, bad := parseID(w, r)
+	if bad {
+		return
+	}
+	var req updateReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Title == "" {
+		httpError(w, http.StatusBadRequest, "invalid json: require non-empty title")
+		return
+	}
+	if n := len(req.Title); n < 3 || n > 100 {
+		httpError(w, http.StatusBadRequest, "title length must be 3..100")
+		return
+	}
+	t, err := h.repo.Update(id, req.Title, req.Done)
+	if err != nil {
+		httpError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, t)
+}
+
+
+```
