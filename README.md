@@ -65,7 +65,7 @@ go run .
 <img width="1692" height="433" alt="изображение" src="https://github.com/user-attachments/assets/dca3910b-11b2-4c6d-9fa1-7805862f531d" />
 
 ### 11. Проверка сохранения на диск
-Останавливаем сервер
+Останавливаем сервер \n
 В data/tasks.json сохранены задачи
 
 <img width="658" height="639" alt="изображение" src="https://github.com/user-attachments/assets/d49ad8bf-44fb-4c98-a8c3-06351143225b" />
