@@ -77,3 +77,18 @@ go run .
 
 ## Таблица результатов тестирования
 
+
+| №  | Метод  | Маршрут                      | Код  | Результат |
+|:--:|:-------|:-----------------------------|:----:|:-----------|
+| 1  | GET    | /health                      | 200  | ОК |
+| 2  | POST   | /api/v1/tasks                | 201  | ОК |
+| 3  | GET    | /api/v1/tasks                | 200  | ОК |
+| 4  | GET    | /api/v1/tasks/1              | 200  | ОК |
+| 5  | PUT    | /api/v1/tasks/1              | 200  | ОК |
+| 6  | DELETE | /api/v1/tasks/1              | 204  | ОК |
+| 7  | POST   | /api/v1/tasks (короткий title) | 400  | ОК |
+| 8  | GET    | /api/v1/tasks/abc            | 400  | ОК |
+| 9  | GET    | /api/v1/tasks?done=true      | 200  | ОК |
+| 10 | GET    | /api/v1/tasks?page=2&limit=2 | 200  | ОК |
+| 11 | OPTIONS| /api/v1/tasks                | 204  | ОК |
+| 12 | Проверка файла JSON | data/tasks.json | — | ОК |
